@@ -19,7 +19,7 @@ public class TrainDataScheduler {
     private final TrainService trainService;
 
     // Fixed window size of 30 days
-    private final int windowSize = 30;
+    private final int windowSize = 10;
 
     /**
      * Scheduler runs every 2 hours.
