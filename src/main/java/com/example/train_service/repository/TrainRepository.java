@@ -1,8 +1,11 @@
 package com.example.train_service.repository;
 
 import com.example.train_service.model.Train;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,10 +19,15 @@ public interface TrainRepository extends JpaRepository<Train, UUID> {
 
     boolean existsByDepartureDate(LocalDate date);
 
-    void deleteByDepartureDateLessThanEqual(LocalDate cutoffDate);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Train t WHERE t.departureDate <= :cutoffDate")
+    void deleteByDepartureDateLessThanEqual(@Param("cutoffDate") LocalDate cutoffDate);
 
     @Query("SELECT DISTINCT t.departureDate FROM Train t")
     Set<LocalDate> findDistinctDepartureDates();
+
 
     List<Train> findBySourceAndDestinationAndDepartureDate(String source, String destination, LocalDate departureDate);
 
