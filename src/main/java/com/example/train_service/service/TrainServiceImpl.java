@@ -18,8 +18,6 @@ public class TrainServiceImpl implements TrainService {
 
     private final TrainRepository trainRepository;
 
-    // Maintenance methods
-
     @Override
     @Transactional
     public void deleteTrainsByDate(LocalDate cutoffDate) {
@@ -36,77 +34,65 @@ public class TrainServiceImpl implements TrainService {
         return trainRepository.existsByDepartureDate(date);
     }
 
+    /**
+     * Populates 50 unique trains for the given date using fixed train templates.
+     * All train numbers are unique globally.
+     */
     @Override
     @Transactional
     public void ensureFiftyTrainsForDate(LocalDate date) {
-        List<Train> existingTrains = trainRepository.findByDepartureDate(date);
-        int existingCount = existingTrains.size();
-        int toCreate = 50 - existingCount;
-        if (toCreate <= 0) return;
+        // Get all train numbers in DB for global uniqueness
+        Set<Integer> allExistingTrainNumbers = new HashSet<>(trainRepository.findAll()
+                .stream()
+                .map(Train::getTrainNumber)
+                .toList());
 
-        Set<Integer> existingTrainNumbers = existingTrains.stream()
+        // Get existing trains for the target date to avoid duplication
+        List<Train> existingTrainsForDate = trainRepository.findByDepartureDate(date);
+        Set<Integer> existingTrainNumbersForDate = existingTrainsForDate.stream()
                 .map(Train::getTrainNumber)
                 .collect(Collectors.toSet());
 
-        int baseTrainNumber = 13000;
+        int trainsToCreate = 50 - existingTrainsForDate.size();
+        if (trainsToCreate <= 0) return;
 
-        List<String> sources = Arrays.asList(
-                "Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata", "Hyderabad", "Ahmedabad",
-                "Pune", "Jaipur", "Lucknow", "Nagpur", "Surat", "Kanpur", "Indore", "Thane",
-                "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad", "Ludhiana",
-                "Agra", "Nashik", "Faridabad", "Meerut", "Rajkot", "Kalyan", "Vasai",
-                "Varanasi", "Srinagar", "Amritsar", "Navi Mumbai", "Allahabad", "Ranchi",
-                "Howrah", "Coimbatore", "Jabalpur", "Gwalior", "Jodhpur", "Madurai",
-                "Raipur", "Kota", "Chandigarh", "Guwahati", "Solapur", "Hubli", "Mysore", "Tiruchirappalli"
-        );
+        List<Train> trainTemplates = getFixedTrainTemplates();
 
-        List<String> destinations = Arrays.asList(
-                "Delhi", "Mumbai", "Chennai", "Kolkata", "Bangalore", "Hyderabad", "Pune",
-                "Jaipur", "Lucknow", "Nagpur", "Surat", "Kanpur", "Indore", "Thane", "Bhopal",
-                "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad", "Ludhiana", "Agra",
-                "Nashik", "Faridabad", "Meerut", "Rajkot", "Kalyan", "Vasai", "Varanasi",
-                "Srinagar", "Amritsar", "Navi Mumbai", "Allahabad", "Ranchi", "Howrah",
-                "Coimbatore", "Jabalpur", "Gwalior", "Jodhpur", "Madurai", "Raipur", "Kota",
-                "Chandigarh", "Guwahati", "Solapur", "Hubli", "Mysore", "Tiruchirappalli"
-        );
+        int created = 0;
+        int templateIndex = 0;
 
-        int journeyDurationMins = 210; // 3.5 hrs
-        LocalTime baseDepartureTime = LocalTime.of(6, 0);
+        while (created < trainsToCreate && templateIndex < trainTemplates.size()) {
+            Train template = trainTemplates.get(templateIndex);
 
-        for (int i = 0; i < toCreate; i++) {
-            int trainNum = baseTrainNumber + i;
-            // Avoid duplicates
-            while (existingTrainNumbers.contains(trainNum)) {
-                trainNum++;
+            int trainNum = template.getTrainNumber();
+
+            // Skip if train number already exists globally or for this date
+            if (allExistingTrainNumbers.contains(trainNum) || existingTrainNumbersForDate.contains(trainNum)) {
+                templateIndex++;
+                continue;
             }
-
-            String source = sources.get(i % sources.size());
-            String destination = destinations.get(i % destinations.size());
-
-            if (source.equalsIgnoreCase(destination)) {
-                destination = destinations.get((i + 1) % destinations.size());
-            }
-
-            LocalTime departureTime = baseDepartureTime.plusMinutes(30L * i);
-            LocalTime arrivalTime = departureTime.plusMinutes(journeyDurationMins);
 
             Train newTrain = Train.builder()
                     .id(UUID.randomUUID())
                     .trainNumber(trainNum)
                     .departureDate(date)
-                    .departureTime(departureTime)
-                    .arrivalTime(arrivalTime)
-                    .source(source)
-                    .destination(destination)
-                    .totalSeats(320)
+                    .departureTime(template.getDepartureTime())
+                    .arrivalTime(template.getArrivalTime())
+                    .source(template.getSource())
+                    .destination(template.getDestination())
+                    .totalSeats(template.getTotalSeats())
                     .build();
 
             trainRepository.save(newTrain);
-            existingTrainNumbers.add(trainNum);
+
+            allExistingTrainNumbers.add(trainNum);
+            existingTrainNumbersForDate.add(trainNum);
+            created++;
+            templateIndex++;
         }
     }
 
-    // CRUD & search methods
+    // CRUD and search methods:
 
     @Override
     @Transactional
@@ -150,5 +136,60 @@ public class TrainServiceImpl implements TrainService {
     @Override
     public List<Train> searchTrains(String source, String destination, LocalDate departureDate) {
         return trainRepository.findBySourceAndDestinationAndDepartureDate(source, destination, departureDate);
+    }
+
+    // Fixed list of 50 train templates - consistent properties except id and departureDate change per day
+    private List<Train> getFixedTrainTemplates() {
+        List<Train> templates = new ArrayList<>();
+        LocalTime baseDepartureTime = LocalTime.of(6, 0);
+        int journeyDurationMins = 210; // 3.5 hours
+
+        String[] sources = {
+                "Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata", "Hyderabad", "Ahmedabad",
+                "Pune", "Jaipur", "Lucknow", "Nagpur", "Surat", "Kanpur", "Indore", "Thane",
+                "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad", "Ludhiana",
+                "Agra", "Nashik", "Faridabad", "Meerut", "Rajkot", "Kalyan", "Vasai",
+                "Varanasi", "Srinagar", "Amritsar", "Navi Mumbai", "Allahabad", "Ranchi",
+                "Howrah", "Coimbatore", "Jabalpur", "Gwalior", "Jodhpur", "Madurai",
+                "Raipur", "Kota", "Chandigarh", "Guwahati", "Solapur", "Hubli", "Mysore", "Tiruchirappalli"
+        };
+
+        String[] destinations = {
+                "Delhi", "Mumbai", "Chennai", "Kolkata", "Bangalore", "Hyderabad", "Pune",
+                "Jaipur", "Lucknow", "Nagpur", "Surat", "Kanpur", "Indore", "Thane", "Bhopal",
+                "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad", "Ludhiana", "Agra",
+                "Nashik", "Faridabad", "Meerut", "Rajkot", "Kalyan", "Vasai", "Varanasi",
+                "Srinagar", "Amritsar", "Navi Mumbai", "Allahabad", "Ranchi", "Howrah",
+                "Coimbatore", "Jabalpur", "Gwalior", "Jodhpur", "Madurai", "Raipur", "Kota",
+                "Chandigarh", "Guwahati", "Solapur", "Hubli", "Mysore", "Tiruchirappalli"
+        };
+
+        int baseTrainNumber = 13000;
+
+        for (int i = 0; i < 50; i++) {
+            String source = sources[i % sources.length];
+            String destination = destinations[i % destinations.length];
+
+            if (source.equalsIgnoreCase(destination)) {
+                destination = destinations[(i + 1) % destinations.length];
+            }
+
+            LocalTime departureTime = baseDepartureTime.plusMinutes(30L * i);
+            LocalTime arrivalTime = departureTime.plusMinutes(journeyDurationMins);
+
+            Train template = Train.builder()
+                    .id(null)  // Set when creating for specific date
+                    .trainNumber(baseTrainNumber + i)
+                    .departureDate(null)  // Set for specific date on actual insert
+                    .departureTime(departureTime)
+                    .arrivalTime(arrivalTime)
+                    .source(source)
+                    .destination(destination)
+                    .totalSeats(320)
+                    .build();
+
+            templates.add(template);
+        }
+        return templates;
     }
 }
