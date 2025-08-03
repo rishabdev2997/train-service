@@ -13,6 +13,8 @@ public interface TrainService {
     List<Train> findByDepartureDate(LocalDate date);
     boolean hasTrainsForDate(LocalDate date);
     void ensureFiftyTrainsForDate(LocalDate date);
+    void seedInitialThirtyDays();
+
 
     // CRUD and query methods used by the controller
     Train createTrain(Train train);

@@ -15,26 +15,26 @@ public class TrainDataScheduler {
 
     private final TrainService trainService;
 
-    // Runs every 10 minutes — adjust as you see fit
+    // Runs every 10 minutes — adjust interval as needed
     @Scheduled(cron = "0 */10 * * * *", zone = "Asia/Kolkata")
     public void maintainTrainDataFrequent() {
         maintainTrainData();
     }
 
-    // Run maintenance on startup immediately
+    // Runs once at startup, seeds full 30 days immediately
     @EventListener(ApplicationReadyEvent.class)
-    public void onStartupMaintainData() {
-        maintainTrainData();
+    public void onStartupSeedAllThirtyDays() {
+        trainService.seedInitialThirtyDays();
     }
 
     private void maintainTrainData() {
         LocalDate today = LocalDate.now();
 
-        // Delete all trains departing before yesterday (adjust retention policy here)
+        // Delete expired trains (those departing before yesterday)
         LocalDate cutoffDate = today.minusDays(1);
         trainService.deleteTrainsByDate(cutoffDate);
 
-        // Ensure 50 trains/day exist for next 30 days from today
+        // Ensure trains exist daily for next 30 days rolling window
         for (int i = 0; i < 30; i++) {
             LocalDate targetDate = today.plusDays(i);
             trainService.ensureFiftyTrainsForDate(targetDate);
