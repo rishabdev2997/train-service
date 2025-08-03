@@ -2,18 +2,17 @@ package com.example.train_service.repository;
 
 import com.example.train_service.model.Train;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-@Repository
 public interface TrainRepository extends JpaRepository<Train, UUID> {
-    List<Train> findBySourceIgnoreCaseAndDestinationIgnoreCaseAndDepartureDate(
-            String source, String destination, LocalDate departureDate);
+    List<Train> findByDepartureDate(LocalDate departureDate);
 
-    boolean existsByTrainNumber(String trainNumber);
-    boolean existsByTrainNumberAndDepartureDate(String trainNumber, LocalDate departureDate);
+    boolean existsByDepartureDate(LocalDate departureDate);
+
+    void deleteByDepartureDateLessThanEqual(LocalDate cutoffDate);
+
+    List<Train> findBySourceAndDestinationAndDepartureDate(String source, String destination, LocalDate departureDate);
 }
-
