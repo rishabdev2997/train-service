@@ -51,23 +51,24 @@ public class TrainServiceImpl implements TrainService {
         int baseTrainNumber = 13000;
 
         List<String> sources = Arrays.asList(
-                "Mumbai","Chennai","Delhi","Bangalore","Hyderabad","Kolkata","Ahmedabad",
-                "Pune","Jaipur","Lucknow","Nagpur","Surat","Kanpur","Indore","Thane",
-                "Bhopal","Visakhapatnam","Pimpri","Patna","Vadodara","Ghaziabad",
-                "Ludhiana","Agra","Nashik","Faridabad","Meerut","Rajkot","Kalyan",
-                "Vasai","Varanasi","Srinagar","Dhanbad","Amritsar","Navi Mumbai","Allahabad",
-                "Ranchi","Howrah","Coimbatore","Jabalpur","Gwalior","Jodhpur","Madurai",
-                "Raipur","Kota","Chandigarh","Guwahati","Solapur","Hubli","Mysore","Tiruchirappalli"
+                "Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata", "Hyderabad", "Ahmedabad",
+                "Pune", "Jaipur", "Lucknow", "Nagpur", "Surat", "Kanpur", "Indore", "Thane",
+                "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad", "Ludhiana",
+                "Agra", "Nashik", "Faridabad", "Meerut", "Rajkot", "Kalyan", "Vasai",
+                "Varanasi", "Srinagar", "Amritsar", "Navi Mumbai", "Allahabad", "Ranchi",
+                "Howrah", "Coimbatore", "Jabalpur", "Gwalior", "Jodhpur", "Madurai",
+                "Raipur", "Kota", "Chandigarh", "Guwahati", "Solapur", "Hubli", "Mysore", "Tiruchirappalli"
         );
 
+        // Major Indian cities as destinations
         List<String> destinations = Arrays.asList(
-                "Pune","Bangalore","Jaipur","Hyderabad","Mumbai","Delhi","Chennai","Kolkata",
-                "Nagpur","Vadodara","Lucknow","Surat","Thane","Indore","Agra","Patna","Nashik",
-                "Kanpur","Rajkot","Vasai","Faridabad","Meerut","Amritsar","Gwalior","Coimbatore",
-                "Jabalpur","Ludhiana","Guwahati","Navi Mumbai","Allahabad","Ranchi","Howrah",
-                "Tiruchirappalli","Mysore","Kota","Chandigarh","Srinagar","Dhanbad","Jodhpur",
-                "Pimpri","Solapur","Hubli","Madurai","Raipur","Kalyan","Ghaziabad","Varanasi",
-                "Bhopal","Meerut","Ranchi","Patna"
+                "Delhi", "Mumbai", "Chennai", "Kolkata", "Bangalore", "Hyderabad", "Pune",
+                "Jaipur", "Lucknow", "Nagpur", "Surat", "Kanpur", "Indore", "Thane", "Bhopal",
+                "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad", "Ludhiana", "Agra",
+                "Nashik", "Faridabad", "Meerut", "Rajkot", "Kalyan", "Vasai", "Varanasi",
+                "Srinagar", "Amritsar", "Navi Mumbai", "Allahabad", "Ranchi", "Howrah",
+                "Coimbatore", "Jabalpur", "Gwalior", "Jodhpur", "Madurai", "Raipur", "Kota",
+                "Chandigarh", "Guwahati", "Solapur", "Hubli", "Mysore", "Tiruchirappalli"
         );
 
         int journeyDurationMins = 210; // 3.5 hrs
