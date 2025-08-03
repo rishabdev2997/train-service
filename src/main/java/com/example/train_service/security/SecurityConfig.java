@@ -21,7 +21,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**","/ping").permitAll()
-                        .requestMatchers("/api/v1/trains/search").permitAll()
+                        .requestMatchers("/api/v1/trains/search","/api/v1/trains").permitAll()
                         // All others require JWT (any role)
                         .anyRequest().authenticated()
                 )
