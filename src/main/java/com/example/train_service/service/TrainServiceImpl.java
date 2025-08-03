@@ -60,7 +60,6 @@ public class TrainServiceImpl implements TrainService {
                 "Raipur", "Kota", "Chandigarh", "Guwahati", "Solapur", "Hubli", "Mysore", "Tiruchirappalli"
         );
 
-        // Major Indian cities as destinations
         List<String> destinations = Arrays.asList(
                 "Delhi", "Mumbai", "Chennai", "Kolkata", "Bangalore", "Hyderabad", "Pune",
                 "Jaipur", "Lucknow", "Nagpur", "Surat", "Kanpur", "Indore", "Thane", "Bhopal",
@@ -107,7 +106,7 @@ public class TrainServiceImpl implements TrainService {
         }
     }
 
-    // Controller methods
+    // CRUD & search methods
 
     @Override
     @Transactional
