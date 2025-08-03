@@ -2,7 +2,6 @@ package com.example.train_service.service;
 
 import com.example.train_service.model.Train;
 import com.example.train_service.repository.TrainRepository;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,39 +17,30 @@ public class TrainServiceImpl implements TrainService {
 
     private final TrainRepository trainRepository;
 
-    // Delete trains with departureDate <= cutoffDate (remove expired train data)
     @Override
     @Transactional
     public void deleteTrainsByDate(LocalDate cutoffDate) {
         trainRepository.deleteByDepartureDateLessThanEqual(cutoffDate);
     }
 
-    // Find trains by departure date
     @Override
     public List<Train> findByDepartureDate(LocalDate date) {
         return trainRepository.findByDepartureDate(date);
     }
 
-    // Check if trains exist for a date
     @Override
     public boolean hasTrainsForDate(LocalDate date) {
         return trainRepository.existsByDepartureDate(date);
     }
 
-    /**
-     * Ensure all 380 unique trains (20 cities, back and forth) exist for the given date.
-     * Skips trains already existing by train number.
-     */
     @Override
     @Transactional
     public void ensureFiftyTrainsForDate(LocalDate date) {
-        // Gather all train numbers already in DB (to keep uniqueness globally)
         Set<Integer> allExistingTrainNumbers = trainRepository.findAll()
                 .stream()
                 .map(Train::getTrainNumber)
                 .collect(Collectors.toSet());
 
-        // Train numbers already for this date
         List<Train> existingTrains = trainRepository.findByDepartureDate(date);
         Set<Integer> trainNumbersForDate = existingTrains.stream()
                 .map(Train::getTrainNumber)
@@ -59,15 +49,14 @@ public class TrainServiceImpl implements TrainService {
         List<Train> templates = getAllCityPairTemplates();
 
         for (Train template : templates) {
-            int trainNum = template.getTrainNumber();
-            if (trainNumbersForDate.contains(trainNum) || allExistingTrainNumbers.contains(trainNum)) {
-                // Skip if train number exists globally or for date to avoid duplicates
+            int trainNumber = template.getTrainNumber();
+            if (trainNumbersForDate.contains(trainNumber) || allExistingTrainNumbers.contains(trainNumber)) {
                 continue;
             }
 
             Train newTrain = Train.builder()
                     .id(UUID.randomUUID())
-                    .trainNumber(trainNum)
+                    .trainNumber(trainNumber)
                     .departureDate(date)
                     .departureTime(template.getDepartureTime())
                     .arrivalTime(template.getArrivalTime())
@@ -77,23 +66,25 @@ public class TrainServiceImpl implements TrainService {
                     .build();
 
             trainRepository.save(newTrain);
-
-            trainNumbersForDate.add(trainNum);
-            allExistingTrainNumbers.add(trainNum);
+            trainNumbersForDate.add(trainNumber);
+            allExistingTrainNumbers.add(trainNumber);
         }
     }
 
-    // Seed train data for all 30 days immediately (called at startup)
+    @Override
     @Transactional
-    public void seedInitialThirtyDays() {
+    public void seedInitialDays(int days) {
         LocalDate today = LocalDate.now();
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < days; i++) {
             LocalDate date = today.plusDays(i);
             ensureFiftyTrainsForDate(date);
         }
     }
 
-    // CRUD and search implementations below
+    @Override
+    public Set<LocalDate> getAllDistinctDepartureDates() {
+        return trainRepository.findDistinctDepartureDates();
+    }
 
     @Override
     @Transactional
@@ -125,7 +116,8 @@ public class TrainServiceImpl implements TrainService {
                     train.setDestination(updatedTrain.getDestination());
                     train.setTotalSeats(updatedTrain.getTotalSeats());
                     return trainRepository.save(train);
-                }).orElseThrow(() -> new RuntimeException("Train not found with id " + id));
+                })
+                .orElseThrow(() -> new RuntimeException("Train not found with id " + id));
     }
 
     @Override
@@ -139,10 +131,6 @@ public class TrainServiceImpl implements TrainService {
         return trainRepository.findBySourceAndDestinationAndDepartureDate(source, destination, departureDate);
     }
 
-    /**
-     * Generate all 380 source-destination pairs (back and forth) for the 20 cities,
-     * with unique train numbers and time slots.
-     */
     private List<Train> getAllCityPairTemplates() {
         List<String> cities = Arrays.asList(
                 "Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata",
@@ -156,7 +144,7 @@ public class TrainServiceImpl implements TrainService {
         int journeyDurationMins = 210;
         int trainNumberBase = 13000;
         int trainNum = trainNumberBase;
-        int timeIncrementMins = 4; // spacing approx every 4 minutes to fit 380 trains daily
+        int timeIncrementMins = 4;
 
         for (String source : cities) {
             for (String destination : cities) {
@@ -165,14 +153,14 @@ public class TrainServiceImpl implements TrainService {
                     LocalTime arrivalTime = departureTime.plusMinutes(journeyDurationMins);
 
                     Train template = Train.builder()
-                            .id(null)  // set per insertion
+                            .id(null)
                             .trainNumber(trainNum)
                             .source(source)
                             .destination(destination)
                             .departureTime(departureTime)
                             .arrivalTime(arrivalTime)
                             .totalSeats(320)
-                            .departureDate(null)  // set per insertion
+                            .departureDate(null)
                             .build();
 
                     templates.add(template);

@@ -17,11 +17,17 @@ import java.util.UUID;
 public class Train {
 
     @Id
-    @Column(nullable = false, updatable = false)
+    @Column(columnDefinition = "BINARY(16)")
     private UUID id;
 
     @Column(nullable = false, unique = true)
-    private int trainNumber;
+    private Integer trainNumber;
+
+    @Column(nullable = false)
+    private String source;
+
+    @Column(nullable = false)
+    private String destination;
 
     @Column(nullable = false)
     private LocalDate departureDate;
@@ -33,11 +39,5 @@ public class Train {
     private LocalTime arrivalTime;
 
     @Column(nullable = false)
-    private String source;
-
-    @Column(nullable = false)
-    private String destination;
-
-    @Column(nullable = false)
-    private int totalSeats;
+    private Integer totalSeats;
 }

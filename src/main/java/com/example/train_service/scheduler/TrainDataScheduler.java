@@ -2,42 +2,42 @@ package com.example.train_service.scheduler;
 
 import com.example.train_service.service.TrainService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TrainDataScheduler {
 
     private final TrainService trainService;
 
-    // Runs every 10 minutes — adjust interval as needed
-    @Scheduled(cron = "0 */10 * * * *", zone = "Asia/Kolkata")
+    private final int windowSize = 30; // Rolling window of 30 days
+
+    @Scheduled(cron = "0 */2 * * * *", zone = "Asia/Kolkata")
     public void maintainTrainDataFrequent() {
-        maintainTrainData();
-    }
-
-    // Runs once at startup, seeds full 30 days immediately
-    @EventListener(ApplicationReadyEvent.class)
-    public void onStartupSeedAllThirtyDays() {
-        trainService.seedInitialThirtyDays();
-    }
-
-    private void maintainTrainData() {
         LocalDate today = LocalDate.now();
 
-        // Delete expired trains (those departing before yesterday)
-        LocalDate cutoffDate = today.minusDays(1);
-        trainService.deleteTrainsByDate(cutoffDate);
+        Set<LocalDate> existingDates = trainService.getAllDistinctDepartureDates();
 
-        // Ensure trains exist daily for next 30 days rolling window
-        for (int i = 0; i < 30; i++) {
-            LocalDate targetDate = today.plusDays(i);
-            trainService.ensureFiftyTrainsForDate(targetDate);
+        Set<LocalDate> expectedDates = IntStream.range(0, windowSize)
+                .mapToObj(today::plusDays)
+                .collect(Collectors.toSet());
+
+        boolean missingData = !existingDates.containsAll(expectedDates);
+
+        if (missingData) {
+            log.info("Train data incomplete for the 30-day window. Seeding all data...");
+            trainService.seedInitialDays(windowSize);
+            log.info("Bulk seeding of 30 days train data completed.");
+        } else {
+            log.info("Train data complete for next 30 days. No seeding necessary.");
         }
     }
 }
