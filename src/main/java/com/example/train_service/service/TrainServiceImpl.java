@@ -47,24 +47,17 @@ public class TrainServiceImpl implements TrainService {
 
     /**
      * Ensure all 380 unique trains are present for the given date
-     * (20 cities back & forth). Skip if already exists.
+     * (20 cities back & forth). Skip insertion if train number already exists for that date.
      */
     @Override
     @Transactional
     public void ensureFiftyTrainsForDate(LocalDate date) {
-        // Fetch all existing train numbers globally (all dates)
-        Set<Integer> allExistingTrainNumbers = trainRepository.findAll()
+        // Fetch train numbers already existing for this date only
+        Set<Integer> trainNumbersForDate = trainRepository.findByDepartureDate(date)
                 .stream()
                 .map(Train::getTrainNumber)
                 .collect(Collectors.toSet());
 
-        // Fetch train numbers already existing for this specific date
-        List<Train> existingTrains = trainRepository.findByDepartureDate(date);
-        Set<Integer> trainNumbersForDate = existingTrains.stream()
-                .map(Train::getTrainNumber)
-                .collect(Collectors.toSet());
-
-        // Templates for all back-and-forth pairs among 20 cities
         List<Train> templates = getAllCityPairTemplates();
 
         int insertedCount = 0;
@@ -72,12 +65,11 @@ public class TrainServiceImpl implements TrainService {
         for (Train template : templates) {
             int trainNumber = template.getTrainNumber();
 
-            // Skip if train number already exists globally or on the date
-            if (trainNumbersForDate.contains(trainNumber) || allExistingTrainNumbers.contains(trainNumber)) {
+            // Skip insertion if train number already exists on this date
+            if (trainNumbersForDate.contains(trainNumber)) {
                 continue;
             }
 
-            // Create new Train instance
             Train newTrain = Train.builder()
                     .id(UUID.randomUUID())
                     .trainNumber(trainNumber)
@@ -91,23 +83,19 @@ public class TrainServiceImpl implements TrainService {
 
             trainRepository.save(newTrain);
             insertedCount++;
-
-            // Add to sets to maintain uniqueness during this operation
-            trainNumbersForDate.add(trainNumber);
-            allExistingTrainNumbers.add(trainNumber);
+            trainNumbersForDate.add(trainNumber); // maintain uniqueness in this run
         }
 
         log.info("Inserted {} new trains for date {}", insertedCount, date);
     }
 
     /**
-     * Bulk seed trains for the specified number of days starting from today.
-     * Each day's seeding is logged.
+     * Bulk seed train data for the given number of days starting from today.
+     * Seeds trains for each day independently.
      */
     @Override
     public void seedInitialDays(int days) {
         LocalDate today = LocalDate.now();
-
         for (int i = 0; i < days; i++) {
             LocalDate date = today.plusDays(i);
             try {
@@ -116,20 +104,20 @@ public class TrainServiceImpl implements TrainService {
                 ensureFiftyTrainsForDate(date);
                 log.info("Completed seeding trains for date {}", date);
             } catch (Exception ex) {
-                log.error("Error seeding trains for date " + date, ex);
+                log.error("Error seeding trains for date {}: ", date, ex);
             }
         }
     }
 
     /**
-     * Return all distinct departure dates currently present.
+     * Returns all distinct departure dates currently present.
      */
     @Override
     public Set<LocalDate> getAllDistinctDepartureDates() {
         return trainRepository.findDistinctDepartureDates();
     }
 
-    /** CRUD operations */
+    /** CRUD Operations */
 
     @Override
     @Transactional
@@ -177,8 +165,8 @@ public class TrainServiceImpl implements TrainService {
     }
 
     /**
-     * Prepare a list of all 380 back-and-forth train route templates for 20 cities.
-     * Each has unique train numbers and fixed departure/arrival times.
+     * Prepare all 380 back-and-forth route templates between 20 cities.
+     * The train numbers are unique per route and schedule.
      */
     private List<Train> getAllCityPairTemplates() {
         List<String> cities = Arrays.asList(
@@ -190,10 +178,10 @@ public class TrainServiceImpl implements TrainService {
 
         List<Train> templates = new ArrayList<>(380);
         LocalTime baseDepartureTime = LocalTime.of(6, 0);
-        int journeyDurationMins = 210; // 3 hours 30 mins roughly
+        int journeyDurationMins = 210; // 3 hours 30 minutes
         int trainNumberBase = 13000;
         int trainNum = trainNumberBase;
-        int timeIncrementMins = 4; // interval between departures in minutes
+        int timeIncrementMins = 4; // spacing between departure times
 
         for (String source : cities) {
             for (String destination : cities) {
@@ -202,14 +190,14 @@ public class TrainServiceImpl implements TrainService {
                     LocalTime arrivalTime = departureTime.plusMinutes(journeyDurationMins);
 
                     Train template = Train.builder()
-                            .id(null)  // assigned on insertion
+                            .id(null) // assigned on insert
                             .trainNumber(trainNum)
                             .source(source)
                             .destination(destination)
                             .departureTime(departureTime)
                             .arrivalTime(arrivalTime)
                             .totalSeats(320)
-                            .departureDate(null)  // assigned on insertion
+                            .departureDate(null) // assigned on insert
                             .build();
 
                     templates.add(template);
