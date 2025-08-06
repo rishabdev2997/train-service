@@ -25,7 +25,8 @@ public interface TrainService {
     Train createTrain(Train train);
 
     List<Train> getAllTrains();
-    List<Train> findByTrainNumber(String trainNumber);
+    List<Train> findByTrainNumber(Integer trainNumber);
+
 
 
     Optional<Train> getTrain(UUID id);

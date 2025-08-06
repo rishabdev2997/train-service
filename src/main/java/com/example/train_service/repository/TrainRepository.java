@@ -32,7 +32,8 @@ public interface TrainRepository extends JpaRepository<Train, UUID> {
     Optional<Train> findById(UUID id);
 
     // NEW: Find trains by exact trainNumber (case-sensitive). Use findByTrainNumberIgnoreCase if you want case-insensitive
-    List<Train> findByTrainNumber(String trainNumber);
+    List<Train> findByTrainNumber(Integer trainNumber);
+
 
     // Optional: to allow case-insensitive query
     // List<Train> findByTrainNumberIgnoreCase(String trainNumber);

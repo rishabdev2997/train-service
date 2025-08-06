@@ -56,50 +56,50 @@ public class TrainController {
      */
     @GetMapping("/search")
     public ResponseEntity<List<Train>> searchTrains(
-            @RequestParam(required = false) String trainNumber,
+            @RequestParam(required = false) String trainNumberParam,
             @RequestParam(required = false) String source,
             @RequestParam(required = false) String destination,
-            @RequestParam(required = false) String departureDate // yyyy-MM-dd format
+            @RequestParam(required = false) String departureDate
     ) {
-        // Explicitly final variable declaration for use inside lambdas
         final LocalDate date = (departureDate != null && !departureDate.isEmpty())
-                ? LocalDate.parse(departureDate)
-                : null;
+                ? LocalDate.parse(departureDate) : null;
 
         List<Train> result;
 
-        if (trainNumber != null && !trainNumber.isEmpty()) {
-            // Fetch all trains with exact matching train number
+        if (trainNumberParam != null && !trainNumberParam.isEmpty()) {
+            Integer trainNumber;
+            try {
+                trainNumber = Integer.parseInt(trainNumberParam);
+            } catch (NumberFormatException e) {
+                // Handle bad input gracefully, e.g., return 400 Bad Request or empty list
+                return ResponseEntity.badRequest().body(List.of());
+            }
+
             result = trainService.findByTrainNumber(trainNumber);
 
-            // Further filter by source if specified
             if (source != null && !source.isEmpty()) {
                 result = result.stream()
                         .filter(t -> t.getSource().equalsIgnoreCase(source))
                         .collect(Collectors.toList());
             }
-            // Further filter by destination if specified
             if (destination != null && !destination.isEmpty()) {
                 result = result.stream()
                         .filter(t -> t.getDestination().equalsIgnoreCase(destination))
                         .collect(Collectors.toList());
             }
-            // Further filter by departure date if specified
             if (date != null) {
                 result = result.stream()
                         .filter(t -> t.getDepartureDate().equals(date))
                         .collect(Collectors.toList());
             }
         } else if (source != null && destination != null && date != null) {
-            // Search by source, destination, and departure date only
             result = trainService.searchTrains(source, destination, date);
         } else {
-            // No filters provided: return all trains
             result = trainService.getAllTrains();
         }
-
         return ResponseEntity.ok(result);
     }
+
 
     // Allow any authenticated user to fetch train info (used for enrichment etc)
     @GetMapping("/{id}")

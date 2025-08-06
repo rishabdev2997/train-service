@@ -29,7 +29,7 @@ public class TrainServiceImpl implements TrainService {
         log.info("Deleted trains with departure date on or before {}", cutoffDate);
     }
     @Override
-    public List<Train> findByTrainNumber(String trainNumber) {
+    public List<Train> findByTrainNumber(Integer trainNumber) {
         return trainRepository.findByTrainNumber(trainNumber);
     }
 
