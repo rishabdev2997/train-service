@@ -196,7 +196,7 @@ public class TrainServiceImpl implements TrainService {
                             .destination(destination)
                             .departureTime(departureTime)
                             .arrivalTime(arrivalTime)
-                            .totalSeats(320)
+                            .totalSeats(50)
                             .departureDate(null) // assigned on insert
                             .build();
 
