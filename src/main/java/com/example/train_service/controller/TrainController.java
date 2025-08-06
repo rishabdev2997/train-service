@@ -2,16 +2,26 @@ package com.example.train_service.controller;
 
 import com.example.train_service.model.Train;
 import com.example.train_service.service.TrainService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.security.core.Authentication;
+
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.LocalDate;
+
 import java.util.List;
+
+import java.util.Optional;
+
 import java.util.UUID;
+
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/trains")
@@ -29,27 +39,74 @@ public class TrainController {
         return ResponseEntity.ok(trainService.createTrain(train));
     }
 
+    // Get all trains (optional: for admin)
     @GetMapping
     public ResponseEntity<List<Train>> getAllTrains() {
         return ResponseEntity.ok(trainService.getAllTrains());
     }
 
+    /**
+     * Search trains with optional filters.
+     * If trainNumber is provided, this will list all trains matching the exact train number.
+     * Other filters like source, destination, and departureDate are optional.
+     *
+     * Examples:
+     * - /api/v1/trains/search?trainNumber=13039
+     * - /api/v1/trains/search?source=Bangalore&destination=Delhi&departureDate=2025-08-15
+     */
     @GetMapping("/search")
     public ResponseEntity<List<Train>> searchTrains(
-            @RequestParam String source,
-            @RequestParam String destination,
-            @RequestParam String departureDate
+            @RequestParam(required = false) String trainNumber,
+            @RequestParam(required = false) String source,
+            @RequestParam(required = false) String destination,
+            @RequestParam(required = false) String departureDate // yyyy-MM-dd format
     ) {
-        LocalDate date = LocalDate.parse(departureDate);
-        return ResponseEntity.ok(trainService.searchTrains(source, destination, date));
+        // Explicitly final variable declaration for use inside lambdas
+        final LocalDate date = (departureDate != null && !departureDate.isEmpty())
+                ? LocalDate.parse(departureDate)
+                : null;
+
+        List<Train> result;
+
+        if (trainNumber != null && !trainNumber.isEmpty()) {
+            // Fetch all trains with exact matching train number
+            result = trainService.findByTrainNumber(trainNumber);
+
+            // Further filter by source if specified
+            if (source != null && !source.isEmpty()) {
+                result = result.stream()
+                        .filter(t -> t.getSource().equalsIgnoreCase(source))
+                        .collect(Collectors.toList());
+            }
+            // Further filter by destination if specified
+            if (destination != null && !destination.isEmpty()) {
+                result = result.stream()
+                        .filter(t -> t.getDestination().equalsIgnoreCase(destination))
+                        .collect(Collectors.toList());
+            }
+            // Further filter by departure date if specified
+            if (date != null) {
+                result = result.stream()
+                        .filter(t -> t.getDepartureDate().equals(date))
+                        .collect(Collectors.toList());
+            }
+        } else if (source != null && destination != null && date != null) {
+            // Search by source, destination, and departure date only
+            result = trainService.searchTrains(source, destination, date);
+        } else {
+            // No filters provided: return all trains
+            result = trainService.getAllTrains();
+        }
+
+        return ResponseEntity.ok(result);
     }
 
-    // Allow any authenticated user to fetch train info (for enrichment, etc)
+    // Allow any authenticated user to fetch train info (used for enrichment etc)
     @GetMapping("/{id}")
     public ResponseEntity<Train> getTrain(@PathVariable UUID id) {
-        return trainService.getTrain(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Optional<Train> trainOpt = trainService.getTrain(id);
+        return trainOpt.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     // Only allow ADMIN to update a train

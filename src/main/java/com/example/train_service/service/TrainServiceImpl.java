@@ -28,6 +28,11 @@ public class TrainServiceImpl implements TrainService {
         trainRepository.deleteByDepartureDateLessThanEqual(cutoffDate);
         log.info("Deleted trains with departure date on or before {}", cutoffDate);
     }
+    @Override
+    public List<Train> findByTrainNumber(String trainNumber) {
+        return trainRepository.findByTrainNumber(trainNumber);
+    }
+
 
     /**
      * Find trains by departure date.

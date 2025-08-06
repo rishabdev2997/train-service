@@ -19,7 +19,6 @@ public interface TrainRepository extends JpaRepository<Train, UUID> {
 
     boolean existsByDepartureDate(LocalDate date);
 
-
     @Modifying
     @Transactional
     @Query("DELETE FROM Train t WHERE t.departureDate <= :cutoffDate")
@@ -28,8 +27,13 @@ public interface TrainRepository extends JpaRepository<Train, UUID> {
     @Query("SELECT DISTINCT t.departureDate FROM Train t")
     Set<LocalDate> findDistinctDepartureDates();
 
-
     List<Train> findBySourceAndDestinationAndDepartureDate(String source, String destination, LocalDate departureDate);
 
     Optional<Train> findById(UUID id);
+
+    // NEW: Find trains by exact trainNumber (case-sensitive). Use findByTrainNumberIgnoreCase if you want case-insensitive
+    List<Train> findByTrainNumber(String trainNumber);
+
+    // Optional: to allow case-insensitive query
+    // List<Train> findByTrainNumberIgnoreCase(String trainNumber);
 }
